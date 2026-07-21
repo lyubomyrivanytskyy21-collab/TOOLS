@@ -1,4 +1,4 @@
--- SYSTEM HUB PRO v7.0 (Ultra Ultra Extended)
+-- SYSTEM HUB PRO v6.0 (Ultra Extended Rebuild)
 
 --// Services
 local UserInputService = game:GetService("UserInputService")
@@ -35,10 +35,6 @@ local ToolESPFolder = Instance.new("Folder")
 ToolESPFolder.Name = "ToolESP_Storage"
 ToolESPFolder.Parent = AdminHub
 
-local RopeESPFolder = Instance.new("Folder")
-RopeESPFolder.Name = "RopeESP_Storage"
-RopeESPFolder.Parent = AdminHub
-
 --// Global State
 local toggles = {
     Fly = false,
@@ -56,16 +52,7 @@ local toggles = {
     AutoRejoin = false,
     AutoRespawn = true,
     AutoHeal = false,
-    AutoAlignToTarget = false,
-    RopeESP = false,
-    TeamESP = false,
-    Aimbot = false,
-    AimbotOnlySelected = false,
-    AimbotIgnoreFriends = true,
-    AimbotWallCheck = false,
-    AimbotUseMouseButton2 = true,
-    AimbotSmooth = true,
-    InventoryAdminPack = false
+    AutoAlignToTarget = false
 }
 
 local sliderValues = {
@@ -77,18 +64,14 @@ local sliderValues = {
     CameraFOV = 70,
     CameraDistance = 15,
     SafeZoneHeight = 5000,
-    AutoHealThreshold = 0.4,
-    AimbotFOV = 120,
-    AimbotSmoothness = 0.25
+    AutoHealThreshold = 0.4
 }
 
 local adminState = {
     SavedLocation = nil,
     FlyingCarpetPart = nil,
     LastServerJobId = game.JobId,
-    LastPlaceId = game.PlaceId,
-    AdminTools = {},
-    AimbotTarget = nil
+    LastPlaceId = game.PlaceId
 }
 
 local tracerOrigin = "Bottom" -- "Bottom", "Center", "Mouse"
@@ -144,8 +127,8 @@ end
 --// MAIN PANEL UI
 local MainPanel = Instance.new("Frame")
 MainPanel.Name = "MainPanel"
-MainPanel.Size = UDim2.new(0, 380, 0, 560)
-MainPanel.Position = UDim2.new(0.5, -190, 0.4, -280)
+MainPanel.Size = UDim2.new(0, 360, 0, 540)
+MainPanel.Position = UDim2.new(0.5, -180, 0.4, -270)
 MainPanel.BackgroundColor3 = Color3.fromRGB(13, 15, 20)
 MainPanel.BorderSizePixel = 0
 MainPanel.Active = true
@@ -185,7 +168,7 @@ HeaderHide.Parent = Header
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0.7, 0, 1, 0)
 Title.Position = UDim2.new(0, 16, 0, 0)
-Title.Text = "SYSTEM HUB PRO <font color=\"rgb(255, 75, 75)\">v7.0</font>"
+Title.Text = "SYSTEM HUB PRO <font color=\"rgb(255, 75, 75)\">v6.0</font>"
 Title.RichText = true
 Title.TextColor3 = Color3.fromRGB(240, 243, 250)
 Title.Font = Enum.Font.GothamBold
@@ -361,7 +344,6 @@ end
 local MainTab = createTab("Main")
 local VisualsTab = createTab("Visuals")
 local TeleportTab = createTab("Teleport")
-local CombatTab = createTab("Combat")
 local SettingsTab = createTab("Settings")
 local AdminTab = createTab("Admin")
 
@@ -735,7 +717,7 @@ createSlider(MainTab, "Walk Speed", 16, 350, "Speed", 16)
 createSlider(MainTab, "Jump Power", 50, 350, "JumpPower", 50)
 createSlider(MainTab, "Safe Zone Height", 1000, 10000, "SafeZoneHeight", 5000, false, function()
     if SafeZonePart then
-        SafeZonePart.CFrame = CFrame.new(SafeZonePart.Position.X, sliderValues.SafeZoneHeight, SafeZonePart.Position.Z)
+        SafeZonePart.CFrame = SafeZonePart.CFrame + Vector3.new(0, sliderValues.SafeZoneHeight - SafeZonePart.Position.Y, 0)
     end
 end)
 
@@ -759,12 +741,10 @@ createButton(MainTab, "Return to Saved Location", function()
     end
 end)
 
--- VISUALS TAB: ESP / FULLBRIGHT / TOOL ESP / FOV / ROPE ESP / TEAM ESP
+-- VISUALS TAB: ESP / FULLBRIGHT / TOOL ESP / FOV
 createToggle(VisualsTab, "Global Master ESP", "ESP")
 createToggle(VisualsTab, "Display Player Distance", "ShowDistance")
 createToggle(VisualsTab, "Tool ESP (Tools in Workspace)", "ToolESP")
-createToggle(VisualsTab, "Rope ESP (Constraints / Rope)", "RopeESP")
-createToggle(VisualsTab, "Team ESP (Color by Team)", "TeamESP")
 createToggle(VisualsTab, "Fullbright Lighting", "Fullbright", function(state)
     if state then
         Lighting.Ambient = Color3.fromRGB(255, 255, 255)
@@ -938,21 +918,6 @@ createButton(TeleportTab, "Teleport Me To Safe Zone (Top)", function()
     teleportToSafeZoneTop()
 end)
 
--- COMBAT TAB: AIMBOT / COMBAT ESP
-createToggle(CombatTab, "Aimbot (Nearest Target)", "Aimbot")
-createToggle(CombatTab, "Aimbot Only Selected ESP Targets", "AimbotOnlySelected")
-createToggle(CombatTab, "Aimbot Ignore Friends", "AimbotIgnoreFriends")
-createToggle(CombatTab, "Aimbot Wall Check (Raycast)", "AimbotWallCheck")
-createToggle(CombatTab, "Aimbot Use Mouse Button2 (Right Click)", "AimbotUseMouseButton2")
-createToggle(CombatTab, "Aimbot Smooth Movement", "AimbotSmooth")
-
-createSlider(CombatTab, "Aimbot FOV (deg)", 20, 180, "AimbotFOV", 120, false)
-createSlider(CombatTab, "Aimbot Smoothness (0.05 - 1.0)", 0.05, 1.0, "AimbotSmoothness", 0.25, true)
-
-createButton(CombatTab, "Clear Aimbot Target", function()
-    adminState.AimbotTarget = nil
-end)
-
 -- SETTINGS TAB: AUTO REJOIN / AUTO RESPAWN / AUTO HEAL
 createToggle(SettingsTab, "Auto Rejoin on Kick/Disconnect", "AutoRejoin")
 createToggle(SettingsTab, "Auto Respawn on Death", "AutoRespawn")
@@ -974,7 +939,7 @@ createButton(SettingsTab, "Copy JobId to Clipboard", function()
     end
 end)
 
--- ADMIN TAB: EXTRA FUN / CARPET / INVENTORY PACK
+-- ADMIN TAB: EXTRA FUN / CARPET / ALIGN
 createButton(AdminTab, "Spawn Flying Carpet", function()
     local character = LocalPlayer.Character
     local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -1007,38 +972,6 @@ createButton(AdminTab, "Destroy Flying Carpet", function()
     if adminState.FlyingCarpetPart and adminState.FlyingCarpetPart.Parent then
         adminState.FlyingCarpetPart:Destroy()
         adminState.FlyingCarpetPart = nil
-    end
-end)
-
-createToggle(AdminTab, "Inventory Admin Pack (Local Tools)", "InventoryAdminPack", function(state)
-    if state then
-        local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
-        if backpack then
-            local function makeTool(name, color)
-                local tool = Instance.new("Tool")
-                tool.Name = name
-                tool.RequiresHandle = true
-                local handle = Instance.new("Part")
-                handle.Name = "Handle"
-                handle.Size = Vector3.new(1, 1, 3)
-                handle.Color = color
-                handle.Material = Enum.Material.Neon
-                handle.Parent = tool
-                tool.Parent = backpack
-                table.insert(adminState.AdminTools, tool)
-            end
-
-            makeTool("Admin Blaster", Color3.fromRGB(255, 75, 75))
-            makeTool("Admin Sword", Color3.fromRGB(75, 255, 120))
-            makeTool("Admin Staff", Color3.fromRGB(75, 75, 255))
-        end
-    else
-        for _, t in ipairs(adminState.AdminTools) do
-            if t and t.Parent then
-                t:Destroy()
-            end
-        end
-        adminState.AdminTools = {}
     end
 end)
 
@@ -1195,14 +1128,6 @@ local function clearESP()
     end
 end
 
-local function getTeamColor(player)
-    local team = player.Team
-    if team and team.TeamColor then
-        return team.TeamColor.Color
-    end
-    return Color3.fromRGB(255, 255, 255)
-end
-
 local function createESPForPlayer(player)
     local character = player.Character
     if not character then return end
@@ -1220,7 +1145,7 @@ local function createESPForPlayer(player)
     nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
     nameLabel.Position = UDim2.new(0, 0, 0, 0)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.TextColor3 = toggles.TeamESP and getTeamColor(player) or Color3.fromRGB(255, 75, 75)
+    nameLabel.TextColor3 = Color3.fromRGB(255, 75, 75)
     nameLabel.Font = Enum.Font.GothamBold
     nameLabel.TextSize = 12
     nameLabel.Text = player.DisplayName .. " (@" .. player.Name .. ")"
@@ -1315,61 +1240,6 @@ RunService.Heartbeat:Connect(function()
     refreshToolESP()
 end)
 
--- Rope ESP (for RopeConstraints / attachments)
-local function clearRopeESP()
-    for _, v in ipairs(RopeESPFolder:GetChildren()) do
-        v:Destroy()
-    end
-end
-
-local function createRopeESPForConstraint(constraint)
-    local a0 = constraint.Attachment0
-    local a1 = constraint.Attachment1
-    if not (a0 and a1 and a0.Parent and a1.Parent) then return end
-
-    local line = Instance.new("Frame")
-    line.Name = "RopeLine"
-    line.BackgroundColor3 = Color3.fromRGB(75, 75, 255)
-    line.BorderSizePixel = 0
-    line.AnchorPoint = Vector2.new(0.5, 0.5)
-    line.Size = UDim2.new(0, 2, 0, 2)
-    line.Parent = RopeESPFolder
-
-    RunService.RenderStepped:Connect(function()
-        if not line.Parent then return end
-        local p0 = a0.WorldPosition
-        local p1 = a1.WorldPosition
-        local screen0, on0 = Camera:WorldToViewportPoint(p0)
-        local screen1, on1 = Camera:WorldToViewportPoint(p1)
-        if on0 and on1 then
-            local mid = (screen0 + screen1) / 2
-            local dist = (screen0 - screen1).Magnitude
-            line.Visible = true
-            line.Position = UDim2.new(0, mid.X, 0, mid.Y)
-            line.Size = UDim2.new(0, 2, 0, dist)
-            local angle = math.atan2(screen1.Y - screen0.Y, screen1.X - screen0.X)
-            line.Rotation = math.deg(angle) + 90
-        else
-            line.Visible = false
-        end
-    end)
-end
-
-local function refreshRopeESP()
-    clearRopeESP()
-    if not toggles.RopeESP then return end
-
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("RopeConstraint") then
-            createRopeESPForConstraint(obj)
-        end
-    end
-end
-
-RunService.Heartbeat:Connect(function()
-    refreshRopeESP()
-end)
-
 -- Target Spam TP
 RunService.Heartbeat:Connect(function(dt)
     if toggles.TargetSpamTP and targetSpamName then
@@ -1412,89 +1282,5 @@ RunService.RenderStepped:Connect(function()
     if root then
         local camPos = root.Position - Camera.CFrame.LookVector * sliderValues.CameraDistance
         Camera.CFrame = CFrame.new(camPos, root.Position)
-    end
-end)
-
--- Aimbot Logic
-local function isFriend(player)
-    if LocalPlayer:IsFriendsWith(player.UserId) then
-        return true
-    end
-    return false
-end
-
-local function isVisible(targetPos)
-    if not toggles.AimbotWallCheck then return true end
-    local character = LocalPlayer.Character
-    local root = character and character:FindFirstChild("HumanoidRootPart")
-    if not root then return false end
-
-    local rayParams = RaycastParams.new()
-    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-    rayParams.FilterDescendantsInstances = {character}
-
-    local result = Workspace:Raycast(root.Position, (targetPos - root.Position).Unit * 9999, rayParams)
-    if result and result.Instance then
-        return result.Instance:IsDescendantOf(Workspace) and result.Position:FuzzyEq(targetPos, 1) or false
-    end
-    return true
-end
-
-local function getNearestAimbotTarget()
-    local mousePos = UserInputService:GetMouseLocation()
-    local bestPlayer = nil
-    local bestDist = math.huge
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            if toggles.AimbotIgnoreFriends and isFriend(player) then
-                continue
-            end
-
-            if toggles.AimbotOnlySelected and not EspRegistry[player.Name] then
-                continue
-            end
-
-            local character = player.Character
-            local root = character and character:FindFirstChild("HumanoidRootPart")
-            if root then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(root.Position)
-                if onScreen then
-                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(mousePos.X, mousePos.Y)).Magnitude
-                    if dist <= sliderValues.AimbotFOV and dist < bestDist and isVisible(root.Position) then
-                        bestDist = dist
-                        bestPlayer = player
-                    end
-                end
-            end
-        end
-    end
-
-    return bestPlayer
-end
-
-RunService.RenderStepped:Connect(function()
-    if not toggles.Aimbot then return end
-
-    if toggles.AimbotUseMouseButton2 and not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        return
-    end
-
-    local targetPlayer = getNearestAimbotTarget()
-    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local targetRoot = targetPlayer.Character.HumanoidRootPart
-        adminState.AimbotTarget = targetPlayer
-
-        local camPos = Camera.CFrame.Position
-        local desiredCF = CFrame.new(camPos, targetRoot.Position)
-
-        if toggles.AimbotSmooth then
-            local currentCF = Camera.CFrame
-            Camera.CFrame = currentCF:Lerp(desiredCF, sliderValues.AimbotSmoothness)
-        else
-            Camera.CFrame = desiredCF
-        end
-    else
-        adminState.AimbotTarget = nil
     end
 end)
