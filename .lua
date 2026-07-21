@@ -1,6 +1,5 @@
--- SYSTEM HUB PRO v6.0 (Ultra Extended Rebuild)
+-- SYSTEM HUB PRO v5.0 (Ultra Extended)
 
---// Services
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -14,14 +13,12 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
---// Cleanup previous UI
-pcall(function()
-    if CoreGui:FindFirstChild("SystemHubProUI") then
-        CoreGui.SystemHubProUI:Destroy()
-    end
-end)
+-- Clean up previous execution instances
+if CoreGui:FindFirstChild("SystemHubProUI") then
+    CoreGui.SystemHubProUI:Destroy()
+end
 
---// Root GUI
+-- Primary Container GUI Setup
 local AdminHub = Instance.new("ScreenGui")
 AdminHub.Name = "SystemHubProUI"
 AdminHub.Parent = CoreGui
@@ -35,7 +32,7 @@ local ToolESPFolder = Instance.new("Folder")
 ToolESPFolder.Name = "ToolESP_Storage"
 ToolESPFolder.Parent = AdminHub
 
---// Global State
+-- Global State & Settings Configs
 local toggles = {
     Fly = false,
     Noclip = false,
@@ -49,10 +46,7 @@ local toggles = {
     TargetSpamTP = false,
     ToolESP = false,
     LockFOV = false,
-    AutoRejoin = false,
-    AutoRespawn = true,
-    AutoHeal = false,
-    AutoAlignToTarget = false
+    AutoRejoin = false
 }
 
 local sliderValues = {
@@ -62,69 +56,32 @@ local sliderValues = {
     FlySpeed = 50,
     TargetTPDelay = 0.1,
     CameraFOV = 70,
-    CameraDistance = 15,
-    SafeZoneHeight = 5000,
-    AutoHealThreshold = 0.4
+    CameraDistance = 15
 }
 
 local adminState = {
     SavedLocation = nil,
-    FlyingCarpetPart = nil,
-    LastServerJobId = game.JobId,
-    LastPlaceId = game.PlaceId
+    FlyingCarpetPart = nil
 }
 
 local tracerOrigin = "Bottom" -- "Bottom", "Center", "Mouse"
 local EspRegistry = {}
 local SafeZonePart = nil
+local safeZoneHeight = 5000
+
 local targetSpamName = nil
 local lastTargetTP = 0
 
 local originalLighting = {
     Ambient = Lighting.Ambient,
     OutdoorAmbient = Lighting.OutdoorAmbient,
-    ClockTime = Lighting.ClockTime,
-    Brightness = Lighting.Brightness,
-    FogEnd = Lighting.FogEnd
+    ClockTime = Lighting.ClockTime
 }
 
---// Safe Zone Creation (Top, not bottom)
-local function ensureSafeZone()
-    if SafeZonePart and SafeZonePart.Parent == Workspace then return SafeZonePart end
+-- ==========================================
+-- MODERN DARK THEME UI ARCHITECTURE
+-- ==========================================
 
-    SafeZonePart = Instance.new("Part")
-    SafeZonePart.Name = "SystemHub_SafeZone"
-    SafeZonePart.Anchored = true
-    SafeZonePart.CanCollide = true
-    SafeZonePart.Size = Vector3.new(200, 10, 200)
-    SafeZonePart.Transparency = 1
-    SafeZonePart.Color = Color3.fromRGB(0, 255, 0)
-
-    local basePos = Vector3.new(0, sliderValues.SafeZoneHeight, 0)
-    pcall(function()
-        if Workspace:FindFirstChild("Baseplate") then
-            basePos = Workspace.Baseplate.Position + Vector3.new(0, sliderValues.SafeZoneHeight, 0)
-        end
-    end)
-
-    SafeZonePart.CFrame = CFrame.new(basePos)
-    SafeZonePart.Parent = Workspace
-
-    return SafeZonePart
-end
-
-local function teleportToSafeZoneTop()
-    local character = LocalPlayer.Character
-    if not character then return end
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    local zone = ensureSafeZone()
-    local topCFrame = zone.CFrame * CFrame.new(0, zone.Size.Y / 2 + 5, 0)
-    root.CFrame = topCFrame
-end
-
---// MAIN PANEL UI
 local MainPanel = Instance.new("Frame")
 MainPanel.Name = "MainPanel"
 MainPanel.Size = UDim2.new(0, 360, 0, 540)
@@ -168,7 +125,7 @@ HeaderHide.Parent = Header
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0.7, 0, 1, 0)
 Title.Position = UDim2.new(0, 16, 0, 0)
-Title.Text = "SYSTEM HUB PRO <font color=\"rgb(255, 75, 75)\">v6.0</font>"
+Title.Text = "SYSTEM HUB PRO <font color=\"rgb(255, 75, 75)\">v5.0</font>"
 Title.RichText = true
 Title.TextColor3 = Color3.fromRGB(240, 243, 250)
 Title.Font = Enum.Font.GothamBold
@@ -408,17 +365,20 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
+-- ==========================================
 -- UI FACTORIES
+-- ==========================================
+
 local function createToggle(parent, name, stateKey, callback)
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(1, 0, 0, 42)
     Frame.BackgroundColor3 = Color3.fromRGB(20, 24, 34)
     Frame.Parent = parent
-
+    
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 8)
     Corner.Parent = Frame
-
+    
     local Label = Instance.new("TextLabel")
     Label.Size = UDim2.new(0.65, 0, 1, 0)
     Label.Position = UDim2.new(0, 12, 0, 0)
@@ -429,7 +389,7 @@ local function createToggle(parent, name, stateKey, callback)
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.BackgroundTransparency = 1
     Label.Parent = Frame
-
+    
     local ActionBtn = Instance.new("TextButton")
     ActionBtn.Size = UDim2.new(0, 52, 0, 24)
     ActionBtn.Position = UDim2.new(1, -62, 0.5, -12)
@@ -439,11 +399,11 @@ local function createToggle(parent, name, stateKey, callback)
     ActionBtn.Font = Enum.Font.GothamBold
     ActionBtn.TextSize = 10
     ActionBtn.Parent = Frame
-
+    
     local BtnCorner = Instance.new("UICorner")
     BtnCorner.CornerRadius = UDim.new(0, 6)
     BtnCorner.Parent = ActionBtn
-
+    
     ActionBtn.MouseButton1Click:Connect(function()
         toggles[stateKey] = not toggles[stateKey]
         if toggles[stateKey] then
@@ -464,11 +424,11 @@ local function createSlider(parent, name, min, max, stateKey, default, isFloat, 
     Frame.Size = UDim2.new(1, 0, 0, 52)
     Frame.BackgroundColor3 = Color3.fromRGB(20, 24, 34)
     Frame.Parent = parent
-
+    
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 8)
     Corner.Parent = Frame
-
+    
     local Label = Instance.new("TextLabel")
     Label.Size = UDim2.new(0.6, 0, 0, 22)
     Label.Position = UDim2.new(0, 12, 0, 4)
@@ -479,7 +439,7 @@ local function createSlider(parent, name, min, max, stateKey, default, isFloat, 
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.BackgroundTransparency = 1
     Label.Parent = Frame
-
+    
     local ValueLabel = Instance.new("TextLabel")
     ValueLabel.Size = UDim2.new(0.3, 0, 0, 22)
     ValueLabel.Position = UDim2.new(1, -92, 0, 4)
@@ -490,43 +450,43 @@ local function createSlider(parent, name, min, max, stateKey, default, isFloat, 
     ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
     ValueLabel.BackgroundTransparency = 1
     ValueLabel.Parent = Frame
-
+    
     local SliderTrack = Instance.new("Frame")
     SliderTrack.Size = UDim2.new(1, -24, 0, 6)
     SliderTrack.Position = UDim2.new(0, 12, 0, 34)
     SliderTrack.BackgroundColor3 = Color3.fromRGB(35, 42, 58)
     SliderTrack.BorderSizePixel = 0
     SliderTrack.Parent = Frame
-
+    
     local TrackCorner = Instance.new("UICorner")
     TrackCorner.CornerRadius = UDim.new(0, 3)
     TrackCorner.Parent = SliderTrack
-
+    
     local SliderFill = Instance.new("Frame")
     local initScale = math.clamp((default - min) / (max - min), 0, 1)
     SliderFill.Size = UDim2.new(initScale, 0, 1, 0)
     SliderFill.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
     SliderFill.BorderSizePixel = 0
     SliderFill.Parent = SliderTrack
-
+    
     local FillCorner = Instance.new("UICorner")
     FillCorner.CornerRadius = UDim.new(0, 3)
     FillCorner.Parent = SliderFill
-
+    
     local function snapToValue(input)
         local totalWidth = SliderTrack.AbsoluteSize.X
         local relativeX = input.Position.X - SliderTrack.AbsolutePosition.X
         local percentage = math.clamp(relativeX / totalWidth, 0, 1)
-
+        
         SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
         local rawValue = min + (percentage * (max - min))
         local finalValue = isFloat and (math.floor(rawValue * 100) / 100) or math.floor(rawValue + 0.5)
-
+        
         ValueLabel.Text = isFloat and string.format("%.2f", finalValue) or tostring(finalValue)
         sliderValues[stateKey] = finalValue
         if callback then callback(finalValue) end
     end
-
+    
     local isSliding = false
     Frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -534,13 +494,13 @@ local function createSlider(parent, name, min, max, stateKey, default, isFloat, 
             snapToValue(input)
         end
     end)
-
+    
     UserInputService.InputChanged:Connect(function(input)
         if isSliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             snapToValue(input)
         end
     end)
-
+    
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             isSliding = false
@@ -557,16 +517,16 @@ local function createButton(parent, name, callback)
     ActionBtn.Font = Enum.Font.GothamMedium
     ActionBtn.TextSize = 12
     ActionBtn.Parent = parent
-
+    
     local BtnCorner = Instance.new("UICorner")
     BtnCorner.CornerRadius = UDim.new(0, 8)
     BtnCorner.Parent = ActionBtn
-
+    
     local Stroke = Instance.new("UIStroke")
     Stroke.Color = Color3.fromRGB(42, 50, 68)
     Stroke.Thickness = 1
     Stroke.Parent = ActionBtn
-
+    
     ActionBtn.MouseButton1Click:Connect(callback)
 end
 
@@ -575,11 +535,11 @@ local function createTeleportBox(parent, placeholder, callback)
     Frame.Size = UDim2.new(1, 0, 0, 42)
     Frame.BackgroundColor3 = Color3.fromRGB(20, 24, 34)
     Frame.Parent = parent
-
+    
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 8)
     Corner.Parent = Frame
-
+    
     local TextBox = Instance.new("TextBox")
     TextBox.Size = UDim2.new(1, -75, 1, 0)
     TextBox.Position = UDim2.new(0, 12, 0, 0)
@@ -593,7 +553,7 @@ local function createTeleportBox(parent, placeholder, callback)
     TextBox.TextXAlignment = Enum.TextXAlignment.Left
     TextBox.ClearTextOnFocus = true
     TextBox.Parent = Frame
-
+    
     local GoBtn = Instance.new("TextButton")
     GoBtn.Size = UDim2.new(0, 52, 0, 26)
     GoBtn.Position = UDim2.new(1, -62, 0.5, -13)
@@ -603,11 +563,11 @@ local function createTeleportBox(parent, placeholder, callback)
     GoBtn.Font = Enum.Font.GothamBold
     GoBtn.TextSize = 11
     GoBtn.Parent = Frame
-
+    
     local BtnCorner = Instance.new("UICorner")
     BtnCorner.CornerRadius = UDim.new(0, 6)
     BtnCorner.Parent = GoBtn
-
+    
     GoBtn.MouseButton1Click:Connect(function()
         if TextBox.Text ~= "" then
             callback(TextBox.Text)
@@ -615,7 +575,10 @@ local function createTeleportBox(parent, placeholder, callback)
     end)
 end
 
+-- ==========================================
 -- MAIN TAB: MOVEMENT / GOD MODE
+-- ==========================================
+
 local FlightVelocity, FlightGyro
 local upPressed, downPressed = false, false
 
@@ -674,12 +637,12 @@ end)
 createToggle(MainTab, "Flight Engine", "Fly", function(state)
     local character = LocalPlayer.Character
     local rootPart = character and character:FindFirstChild("HumanoidRootPart")
-
+    
     MobileFlyFrame.Visible = state
-
+    
     if not state then
-        if FlightVelocity then FlightVelocity:Destroy() FlightVelocity = nil end
-        if FlightGyro then FlightGyro:Destroy() FlightGyro = nil end
+        if FlightVelocity then FlightVelocity:Destroy() end
+        if FlightGyro then FlightGyro:Destroy() end
         if character and character:FindFirstChildOfClass("Humanoid") then
             character:FindFirstChildOfClass("Humanoid").PlatformStand = false
         end
@@ -689,15 +652,11 @@ createToggle(MainTab, "Flight Engine", "Fly", function(state)
             FlightVelocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
             FlightVelocity.Velocity = Vector3.new(0, 0, 0)
             FlightVelocity.Parent = rootPart
-
+            
             FlightGyro = Instance.new("BodyGyro")
             FlightGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
             FlightGyro.CFrame = rootPart.CFrame
             FlightGyro.Parent = rootPart
-
-            if character:FindFirstChildOfClass("Humanoid") then
-                character:FindFirstChildOfClass("Humanoid").PlatformStand = true
-            end
         end
     end
 end)
@@ -706,42 +665,14 @@ createToggle(MainTab, "Noclip Engine", "Noclip")
 createToggle(MainTab, "Infinite Jump", "InfiniteJump")
 createToggle(MainTab, "Anti-Stun / Ragdoll Immunity", "AntiStun")
 createToggle(MainTab, "GOD MODE (Immortal)", "GodMode")
-createToggle(MainTab, "Auto Safe Zone (Top)", "AutoSafeZone", function(state)
-    if state then
-        ensureSafeZone()
-    end
-end)
-
 createSlider(MainTab, "Fly Speed", 10, 300, "FlySpeed", 50)
 createSlider(MainTab, "Walk Speed", 16, 350, "Speed", 16)
 createSlider(MainTab, "Jump Power", 50, 350, "JumpPower", 50)
-createSlider(MainTab, "Safe Zone Height", 1000, 10000, "SafeZoneHeight", 5000, false, function()
-    if SafeZonePart then
-        SafeZonePart.CFrame = SafeZonePart.CFrame + Vector3.new(0, sliderValues.SafeZoneHeight - SafeZonePart.Position.Y, 0)
-    end
-end)
 
-createButton(MainTab, "Teleport to Safe Zone (Top)", function()
-    teleportToSafeZoneTop()
-end)
+-- ==========================================
+-- VISUALS TAB: ESP / FULLBRIGHT / TOOL ESP
+-- ==========================================
 
-createButton(MainTab, "Save Current Location", function()
-    local character = LocalPlayer.Character
-    local root = character and character:FindFirstChild("HumanoidRootPart")
-    if root then
-        adminState.SavedLocation = root.CFrame
-    end
-end)
-
-createButton(MainTab, "Return to Saved Location", function()
-    local character = LocalPlayer.Character
-    local root = character and character:FindFirstChild("HumanoidRootPart")
-    if root and adminState.SavedLocation then
-        root.CFrame = adminState.SavedLocation
-    end
-end)
-
--- VISUALS TAB: ESP / FULLBRIGHT / TOOL ESP / FOV
 createToggle(VisualsTab, "Global Master ESP", "ESP")
 createToggle(VisualsTab, "Display Player Distance", "ShowDistance")
 createToggle(VisualsTab, "Tool ESP (Tools in Workspace)", "ToolESP")
@@ -750,24 +681,12 @@ createToggle(VisualsTab, "Fullbright Lighting", "Fullbright", function(state)
         Lighting.Ambient = Color3.fromRGB(255, 255, 255)
         Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
         Lighting.ClockTime = 14
-        Lighting.Brightness = 3
-        Lighting.FogEnd = 100000
     else
         Lighting.Ambient = originalLighting.Ambient
         Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient
         Lighting.ClockTime = originalLighting.ClockTime
-        Lighting.Brightness = originalLighting.Brightness
-        Lighting.FogEnd = originalLighting.FogEnd
     end
 end)
-
-createSlider(VisualsTab, "Camera FOV", 40, 120, "CameraFOV", 70, false, function(value)
-    Camera.FieldOfView = value
-end)
-
-createToggle(VisualsTab, "Lock FOV", "LockFOV")
-
-createSlider(VisualsTab, "Camera Distance", 5, 50, "CameraDistance", 15, false)
 
 createButton(VisualsTab, "Cycle Tracer Origin: Bottom", function()
     if tracerOrigin == "Bottom" then
@@ -812,7 +731,7 @@ local function UpdateEspSelectionList()
     for _, child in pairs(EspScroller:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
-
+    
     local rowCount = 0
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
@@ -826,9 +745,9 @@ local function UpdateEspSelectionList()
             RowButton.TextColor3 = EspRegistry[player.Name] and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 205, 220)
             RowButton.TextXAlignment = Enum.TextXAlignment.Left
             RowButton.Parent = EspScroller
-
+            
             Instance.new("UICorner", RowButton).CornerRadius = UDim.new(0, 6)
-
+            
             RowButton.MouseButton1Click:Connect(function()
                 EspRegistry[player.Name] = not EspRegistry[player.Name]
                 RowButton.BackgroundColor3 = EspRegistry[player.Name] and Color3.fromRGB(255, 75, 75) or Color3.fromRGB(28, 33, 46)
@@ -843,7 +762,10 @@ Players.PlayerAdded:Connect(UpdateEspSelectionList)
 Players.PlayerRemoving:Connect(UpdateEspSelectionList)
 UpdateEspSelectionList()
 
+-- ==========================================
 -- TELEPORT TAB: ADVANCED TELEPORT FEATURES
+-- ==========================================
+
 createTeleportBox(TeleportTab, "Teleport to Player...", function(targetName)
     local foundPlayer = nil
     for _, p in ipairs(Players:GetPlayers()) do
@@ -852,7 +774,7 @@ createTeleportBox(TeleportTab, "Teleport to Player...", function(targetName)
             break
         end
     end
-
+    
     if foundPlayer and foundPlayer.Character and foundPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if myRoot then
@@ -864,7 +786,7 @@ end)
 createTeleportBox(TeleportTab, "Bring Player To Me...", function(targetName)
     local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
-
+    
     local foundPlayer = nil
     for _, p in ipairs(Players:GetPlayers()) do
         if p.Name:lower():sub(1, #targetName) == targetName:lower() or p.DisplayName:lower():sub(1, #targetName) == targetName:lower() then
@@ -872,7 +794,7 @@ createTeleportBox(TeleportTab, "Bring Player To Me...", function(targetName)
             break
         end
     end
-
+    
     if foundPlayer and foundPlayer.Character and foundPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local targetRoot = foundPlayer.Character.HumanoidRootPart
         targetRoot.CFrame = myRoot.CFrame * CFrame.new(0, 0, 3)
@@ -893,361 +815,455 @@ createButton(TeleportTab, "Teleport to Random Player", function()
             table.insert(availablePlayers, p)
         end
     end
-
+    
     if #availablePlayers > 0 then
         local target = availablePlayers[math.random(1, #availablePlayers)]
         local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if myRoot then
-            myRoot.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+        local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
+        if myRoot and targetRoot then
+            myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 3)
         end
     end
 end)
 
-createButton(TeleportTab, "Teleport All Players To Me", function()
-    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            p.Character.HumanoidRootPart.CFrame = myRoot.CFrame * CFrame.new(0, 0, 5)
-        end
+createButton(TeleportTab, "Save Current Location", function()
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        adminState.SavedLocation = root.Position
     end
 end)
 
-createButton(TeleportTab, "Teleport Me To Safe Zone (Top)", function()
-    teleportToSafeZoneTop()
-end)
-
--- SETTINGS TAB: AUTO REJOIN / AUTO RESPAWN / AUTO HEAL
-createToggle(SettingsTab, "Auto Rejoin on Kick/Disconnect", "AutoRejoin")
-createToggle(SettingsTab, "Auto Respawn on Death", "AutoRespawn")
-createToggle(SettingsTab, "Auto Heal (if health below threshold)", "AutoHeal")
-
-createSlider(SettingsTab, "Auto Heal Threshold (0.1 - 0.9)", 0.1, 0.9, "AutoHealThreshold", 0.4, true)
-
-createButton(SettingsTab, "Rejoin Current Server", function()
-    TeleportService:Teleport(adminState.LastPlaceId, LocalPlayer)
-end)
-
-createButton(SettingsTab, "Rejoin Different Server", function()
-    TeleportService:Teleport(adminState.LastPlaceId)
-end)
-
-createButton(SettingsTab, "Copy JobId to Clipboard", function()
-    if setclipboard then
-        setclipboard(adminState.LastServerJobId)
+createButton(TeleportTab, "Teleport to Saved Location", function()
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if root and adminState.SavedLocation then
+        root.CFrame = CFrame.new(adminState.SavedLocation + Vector3.new(0, 3, 0))
     end
 end)
 
--- ADMIN TAB: EXTRA FUN / CARPET / ALIGN
-createButton(AdminTab, "Spawn Flying Carpet", function()
-    local character = LocalPlayer.Character
-    local root = character and character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    if adminState.FlyingCarpetPart and adminState.FlyingCarpetPart.Parent then
-        adminState.FlyingCarpetPart:Destroy()
-        adminState.FlyingCarpetPart = nil
-    end
-
-    local carpet = Instance.new("Part")
-    carpet.Name = "SystemHub_FlyingCarpet"
-    carpet.Size = Vector3.new(8, 1, 8)
-    carpet.Anchored = false
-    carpet.CanCollide = true
-    carpet.Color = Color3.fromRGB(255, 75, 75)
-    carpet.Material = Enum.Material.Neon
-    carpet.CFrame = root.CFrame * CFrame.new(0, -4, 0)
-    carpet.Parent = Workspace
-
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = carpet
-    weld.Part1 = root
-    weld.Parent = carpet
-
-    adminState.FlyingCarpetPart = carpet
-end)
-
-createButton(AdminTab, "Destroy Flying Carpet", function()
-    if adminState.FlyingCarpetPart and adminState.FlyingCarpetPart.Parent then
-        adminState.FlyingCarpetPart:Destroy()
-        adminState.FlyingCarpetPart = nil
+createButton(TeleportTab, "Teleport Above Map (High Sky)", function()
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        root.CFrame = CFrame.new(root.Position.X, safeZoneHeight + 200, root.Position.Z)
     end
 end)
 
-createToggle(AdminTab, "Auto Align To Target (Spam TP target)", "AutoAlignToTarget")
-
-createButton(AdminTab, "Reset Character (Soft)", function()
-    local character = LocalPlayer.Character
-    if character then
-        for _, v in ipairs(character:GetChildren()) do
-            if v:IsA("BasePart") then
-                v.Velocity = Vector3.new(0, 0, 0)
-                v.RotVelocity = Vector3.new(0, 0, 0)
-            end
-        end
+createButton(TeleportTab, "Teleport Below Map (Void)", function()
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        root.CFrame = CFrame.new(root.Position.X, -500, root.Position.Z)
     end
 end)
 
-createButton(AdminTab, "Hard Reset (Respawn)", function()
-    LocalPlayer:LoadCharacter()
-end)
-
--- CORE LOGIC LOOPS
-
--- Noclip
-RunService.Stepped:Connect(function()
-    if toggles.Noclip then
-        local character = LocalPlayer.Character
-        if character then
-            for _, part in ipairs(character:GetChildren()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        end
-    end
-end)
-
--- Infinite Jump
-UserInputService.JumpRequest:Connect(function()
-    if toggles.InfiniteJump then
-        local character = LocalPlayer.Character
-        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
-    end
-end)
-
--- Movement (Speed / Jump / Fly)
-RunService.RenderStepped:Connect(function()
-    local character = LocalPlayer.Character
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    local root = character and character:FindFirstChild("HumanoidRootPart")
-
-    if humanoid then
-        humanoid.WalkSpeed = sliderValues.Speed
-        humanoid.JumpPower = sliderValues.JumpPower
-    end
-
-    if toggles.Fly and FlightVelocity and FlightGyro and root then
-        local moveDirection = Vector3.new(0, 0, 0)
-        local camCF = Camera.CFrame
-
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-            moveDirection = moveDirection + camCF.LookVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-            moveDirection = moveDirection - camCF.LookVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-            moveDirection = moveDirection - camCF.RightVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-            moveDirection = moveDirection + camCF.RightVector
-        end
-
-        if upPressed or UserInputService:IsKeyDown(Enum.KeyCode.E) then
-            moveDirection = moveDirection + Vector3.new(0, 1, 0)
-        end
-        if downPressed or UserInputService:IsKeyDown(Enum.KeyCode.Q) then
-            moveDirection = moveDirection - Vector3.new(0, 1, 0)
-        end
-
-        if moveDirection.Magnitude > 0 then
-            moveDirection = moveDirection.Unit
-        end
-
-        FlightVelocity.Velocity = moveDirection * sliderValues.FlySpeed
-        FlightGyro.CFrame = camCF
-    end
-end)
-
--- Anti-Stun / GodMode / AutoHeal
-RunService.Heartbeat:Connect(function()
-    local character = LocalPlayer.Character
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    if toggles.AntiStun then
-        humanoid.PlatformStand = false
-        humanoid:ChangeState(Enum.HumanoidStateType.Running)
-    end
-
-    if toggles.GodMode then
-        humanoid.Health = humanoid.MaxHealth
-        humanoid.BreakJointsOnDeath = false
-    end
-
-    if toggles.AutoHeal then
-        if humanoid.Health / humanoid.MaxHealth <= sliderValues.AutoHealThreshold then
-            humanoid.Health = humanoid.MaxHealth
-        end
-    end
-end)
-
--- Auto Safe Zone
-RunService.Heartbeat:Connect(function()
-    if toggles.AutoSafeZone then
+createButton(TeleportTab, "Get Click-Teleport Tool", function()
+    local tool = Instance.new("Tool")
+    tool.Name = "Click Teleport"
+    tool.RequiresHandle = false
+    
+    tool.Activated:Connect(function()
         local character = LocalPlayer.Character
         local root = character and character:FindFirstChild("HumanoidRootPart")
         if root then
-            if root.Position.Y < 0 then
-                teleportToSafeZoneTop()
+            local mouseLocation = UserInputService:GetMouseLocation()
+            local unitRay = Camera:ViewportPointToRay(mouseLocation.X, mouseLocation.Y)
+            local raycastParams = RaycastParams.new()
+            raycastParams.FilterDescendantsInstances = {character}
+            raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+            
+            local result = Workspace:Raycast(unitRay.Origin, unitRay.Direction * 1000, raycastParams)
+            if result then
+                root.CFrame = CFrame.new(result.Position + Vector3.new(0, 3, 0))
             end
-        end
-    end
-end)
-
--- Auto Respawn
-LocalPlayer.CharacterAdded:Connect(function(char)
-    if toggles.AutoRespawn then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.Died:Connect(function()
-                if toggles.AutoRespawn then
-                    LocalPlayer:LoadCharacter()
-                end
-            end)
-        end
-    end
-end)
-
--- Auto Rejoin (basic)
-game:GetService("GuiService").ErrorMessageChanged:Connect(function(message)
-    if toggles.AutoRejoin and message ~= "" then
-        TeleportService:Teleport(adminState.LastPlaceId, LocalPlayer)
-    end
-end)
-
--- ESP (Players)
-local function clearESP()
-    for _, v in ipairs(ESPFolder:GetChildren()) do
-        v:Destroy()
-    end
-end
-
-local function createESPForPlayer(player)
-    local character = player.Character
-    if not character then return end
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "ESP_" .. player.Name
-    billboard.Size = UDim2.new(0, 200, 0, 50)
-    billboard.AlwaysOnTop = true
-    billboard.Adornee = root
-    billboard.Parent = ESPFolder
-
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
-    nameLabel.Position = UDim2.new(0, 0, 0, 0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.TextColor3 = Color3.fromRGB(255, 75, 75)
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 12
-    nameLabel.Text = player.DisplayName .. " (@" .. player.Name .. ")"
-    nameLabel.Parent = billboard
-
-    local distLabel = Instance.new("TextLabel")
-    distLabel.Size = UDim2.new(1, 0, 0.5, 0)
-    distLabel.Position = UDim2.new(0, 0, 0.5, 0)
-    distLabel.BackgroundTransparency = 1
-    distLabel.TextColor3 = Color3.fromRGB(220, 225, 235)
-    distLabel.Font = Enum.Font.GothamMedium
-    distLabel.TextSize = 11
-    distLabel.Text = ""
-    distLabel.Parent = billboard
-
-    RunService.RenderStepped:Connect(function()
-        if not billboard.Parent then return end
-        if toggles.ShowDistance and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local myRoot = LocalPlayer.Character.HumanoidRootPart
-            local dist = (myRoot.Position - root.Position).Magnitude
-            distLabel.Text = string.format("Distance: %.0f", dist)
-        else
-            distLabel.Text = ""
         end
     end)
+    tool.Parent = LocalPlayer:WaitForChild("Backpack")
+end)
+
+local function GenerateSafeZone()
+    if SafeZonePart and SafeZonePart.Parent then return SafeZonePart end
+    
+    SafeZonePart = Instance.new("Part")
+    SafeZonePart.Name = "OmnipresentSafeZonePlank"
+    SafeZonePart.Size = Vector3.new(150, 2, 150)
+    SafeZonePart.Position = Vector3.new(0, safeZoneHeight, 0)
+    SafeZonePart.Anchored = true
+    SafeZonePart.Material = Enum.Material.SmoothPlastic
+    SafeZonePart.Color = Color3.fromRGB(255, 255, 255)
+    SafeZonePart.TopSurface = Enum.SurfaceType.Smooth
+    SafeZonePart.Parent = Workspace
+    
+    local Barrier = Instance.new("Part")
+    Barrier.Size = Vector3.new(152, 20, 152)
+    Barrier.Position = SafeZonePart.Position + Vector3.new(0, 10, 0)
+    Barrier.Transparency = 1
+    Barrier.Anchored = true
+    Barrier.CanCollide = true
+    Barrier.Parent = SafeZonePart
+    
+    local SelectionOutline = Instance.new("SelectionBox")
+    SelectionOutline.Adornee = SafeZonePart
+    SelectionOutline.Color3 = Color3.fromRGB(255, 75, 75)
+    SelectionOutline.Parent = SafeZonePart
+    
+    return SafeZonePart
 end
 
-local function refreshESP()
-    clearESP()
-    if not toggles.ESP then return end
+createButton(TeleportTab, "Deploy & TP to Safe Zone Platform", function()
+    local platform = GenerateSafeZone()
+    local character = LocalPlayer.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    if root then
+        -- Teleport ABOVE the platform by 10 studs so you drop onto it
+        root.CFrame = CFrame.new(platform.Position + Vector3.new(0, 10, 0))
+    end
+end)
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            if next(EspRegistry) == nil or EspRegistry[player.Name] then
-                createESPForPlayer(player)
+createToggle(TeleportTab, "Auto Safe Zone (Keep You On Platform)", "AutoSafeZone")
+
+createButton(TeleportTab, "Rejoin Current Server", function()
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+end)
+
+createButton(TeleportTab, "Server Hop (Find New Lobby)", function()
+    local success, servers = pcall(function()
+        return game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
+    end)
+    if success and servers then
+        local decoded = HttpService:JSONDecode(servers)
+        for _, server in ipairs(decoded.data) do
+            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                break
             end
         end
     end
-end
-
-Players.PlayerAdded:Connect(function()
-    refreshESP()
-end)
-Players.PlayerRemoving:Connect(function()
-    refreshESP()
 end)
 
-RunService.Heartbeat:Connect(function()
-    refreshESP()
+-- ==========================================
+-- SETTINGS TAB: CAMERA / UI / AUTO REJOIN
+-- ==========================================
+
+createSlider(SettingsTab, "GUI Scale (Mobile Friendly)", 0.5, 1.5, "GuiScale", 1.0, true, function(scaleValue)
+    UIScale.Scale = scaleValue
+    OpenScale.Scale = scaleValue
 end)
 
--- Tool ESP
-local function clearToolESP()
-    for _, v in ipairs(ToolESPFolder:GetChildren()) do
-        v:Destroy()
+createSlider(SettingsTab, "Camera FOV", 40, 100, "CameraFOV", 70, false, function(value)
+    sliderValues.CameraFOV = value
+    Camera.FieldOfView = value
+end)
+
+createSlider(SettingsTab, "Camera Distance", 5, 50, "CameraDistance", 15, false, function(value)
+    sliderValues.CameraDistance = value
+    LocalPlayer.CameraMaxZoomDistance = value
+    LocalPlayer.CameraMinZoomDistance = 5
+end)
+
+createToggle(SettingsTab, "Lock Camera FOV", "LockFOV", function(state)
+    if state then
+        Camera.FieldOfView = sliderValues.CameraFOV
     end
+end)
+
+createToggle(SettingsTab, "Auto Rejoin On Death", "AutoRejoin")
+
+createButton(SettingsTab, "Reset UI Center Position", function()
+    MainPanel.Position = UDim2.new(0.5, -180, 0.4, -270)
+    OpenBtn.Position = UDim2.new(0, 20, 0.3, 0)
+end)
+
+-- ==========================================
+-- ADMIN TAB: FAKE ADMIN TOOLS (Flying Carpet, Blink, Dash)
+-- ==========================================
+
+local function giveFlyingCarpetTool()
+    local tool = Instance.new("Tool")
+    tool.Name = "Fake Flying Carpet"
+    tool.RequiresHandle = false
+    
+    tool.Equipped:Connect(function()
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root then
+            if adminState.FlyingCarpetPart and adminState.FlyingCarpetPart.Parent then
+                adminState.FlyingCarpetPart:Destroy()
+            end
+            local carpet = Instance.new("Part")
+            carpet.Name = "FlyingCarpetPlatform"
+            carpet.Size = Vector3.new(8, 1, 12)
+            carpet.Anchored = true
+            carpet.Material = Enum.Material.SmoothPlastic
+            carpet.Color = Color3.fromRGB(255, 255, 0)
+            carpet.Position = root.Position - Vector3.new(0, 3, 0)
+            carpet.Parent = Workspace
+            adminState.FlyingCarpetPart = carpet
+        end
+    end)
+    
+    tool.Unequipped:Connect(function()
+        if adminState.FlyingCarpetPart then
+            adminState.FlyingCarpetPart:Destroy()
+            adminState.FlyingCarpetPart = nil
+        end
+    end)
+    
+    tool.Activated:Connect(function()
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root and adminState.FlyingCarpetPart then
+            adminState.FlyingCarpetPart.CFrame = root.CFrame * CFrame.new(0, -3, 0)
+        end
+    end)
+    
+    tool.Parent = LocalPlayer:WaitForChild("Backpack")
 end
 
-local function createToolESP(tool)
-    local handle = tool:FindFirstChild("Handle")
-    if not handle then return end
-
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "ToolESP_" .. tool.Name
-    billboard.Size = UDim2.new(0, 150, 0, 40)
-    billboard.AlwaysOnTop = true
-    billboard.Adornee = handle
-    billboard.Parent = ToolESPFolder
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(75, 255, 120)
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 12
-    label.Text = "Tool: " .. tool.Name
-    label.Parent = billboard
+local function giveBlinkTeleportTool()
+    local tool = Instance.new("Tool")
+    tool.Name = "Blink Teleport"
+    tool.RequiresHandle = false
+    
+    tool.Activated:Connect(function()
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root then
+            local forward = Camera.CFrame.LookVector
+            root.CFrame = root.CFrame + (forward * 15)
+        end
+    end)
+    
+    tool.Parent = LocalPlayer:WaitForChild("Backpack")
 end
 
+local function giveDashTool()
+    local tool = Instance.new("Tool")
+    tool.Name = "Phase Dash"
+    tool.RequiresHandle = false
+    
+    tool.Activated:Connect(function()
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root then
+            local forward = Camera.CFrame.LookVector
+            root.CFrame = root.CFrame + (forward * 40)
+        end
+    end)
+    
+    tool.Parent = LocalPlayer:WaitForChild("Backpack")
+end
+
+createButton(AdminTab, "Give Fake Flying Carpet Tool", function()
+    giveFlyingCarpetTool()
+end)
+
+createButton(AdminTab, "Give Blink Teleport Tool", function()
+    giveBlinkTeleportTool()
+end)
+
+createButton(AdminTab, "Give Phase Dash Tool", function()
+    giveDashTool()
+end)
+
+createButton(AdminTab, "Clean ESP / Tool ESP Storage", function()
+    for _, v in ipairs(ESPFolder:GetChildren()) do v:Destroy() end
+    for _, v in ipairs(ToolESPFolder:GetChildren()) do v:Destroy() end
+end)
+
+-- ==========================================
+-- ESP SYSTEM
+-- ==========================================
+
+local function createESPAssets(player)
+    if player == LocalPlayer then return end
+    
+    local function applyESP(character)
+        if not character then return end
+        local root = character:FindFirstChild("HumanoidRootPart")
+        if not root then
+            root = character:WaitForChild("HumanoidRootPart", 5)
+            if not root then return end
+        end
+        
+        if not character:FindFirstChild("ESPHighlight") then
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "ESPHighlight"
+            highlight.FillColor = Color3.fromRGB(255, 0, 0)
+            highlight.FillTransparency = 0.5
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.OutlineTransparency = 0
+            highlight.Adornee = character
+            highlight.Enabled = toggles.ESP
+            highlight.Parent = character
+        end
+        
+        local billboardName = player.Name .. "_ESP_Bill"
+        local tracerName = player.Name .. "_ESP_Trace"
+        
+        if not ESPFolder:FindFirstChild(billboardName) then
+            local bill = Instance.new("BillboardGui")
+            bill.Name = billboardName
+            bill.AlwaysOnTop = true
+            bill.Size = UDim2.new(0, 200, 0, 50)
+            bill.StudsOffset = Vector3.new(0, 3, 0)
+            bill.Adornee = root
+            
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Name = "Tag"
+            nameLabel.Size = UDim2.new(1, 0, 1, 0)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.TextColor3 = Color3.fromRGB(255, 75, 75)
+            nameLabel.Font = Enum.Font.GothamBold
+            nameLabel.TextSize = 13
+            nameLabel.TextStrokeTransparency = 0.2
+            nameLabel.Parent = bill
+            
+            bill.Parent = ESPFolder
+        end
+        
+        if not ESPFolder:FindFirstChild(tracerName) then
+            local line = Instance.new("Frame")
+            line.Name = tracerName
+            line.AnchorPoint = Vector2.new(0.5, 0.5)
+            line.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
+            line.BorderSizePixel = 0
+            line.Visible = false
+            line.Parent = ESPFolder
+        end
+    end
+    
+    player.CharacterAdded:Connect(applyESP)
+    if player.Character then applyESP(player.Character) end
+end
+
+for _, p in ipairs(Players:GetPlayers()) do createESPAssets(p) end
+Players.PlayerAdded:Connect(createESPAssets)
+
+Players.PlayerRemoving:Connect(function(player)
+    local bill = ESPFolder:FindFirstChild(player.Name .. "_ESP_Bill")
+    local trace = ESPFolder:FindFirstChild(player.Name .. "_ESP_Trace")
+    if bill then bill:Destroy() end
+    if trace then trace:Destroy() end
+end)
+
+-- TOOL ESP
 local function refreshToolESP()
-    clearToolESP()
+    for _, child in ipairs(ToolESPFolder:GetChildren()) do
+        child:Destroy()
+    end
+
     if not toggles.ToolESP then return end
 
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Tool") then
-            createToolESP(obj)
+        if obj:IsA("Tool") and obj:FindFirstChild("Handle") then
+            local handle = obj.Handle
+            local bill = Instance.new("BillboardGui")
+            bill.Name = "ToolESP_" .. obj.Name
+            bill.AlwaysOnTop = true
+            bill.Size = UDim2.new(0, 120, 0, 30)
+            bill.StudsOffset = Vector3.new(0, 2, 0)
+            bill.Adornee = handle
+
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, 0, 1, 0)
+            label.BackgroundTransparency = 1
+            label.TextColor3 = Color3.fromRGB(75, 255, 120)
+            label.Font = Enum.Font.GothamBold
+            label.TextSize = 12
+            label.Text = "[TOOL] " .. obj.Name
+            label.Parent = bill
+
+            bill.Parent = ToolESPFolder
         end
     end
 end
 
-RunService.Heartbeat:Connect(function()
-    refreshToolESP()
-end)
+-- ==========================================
+-- MAIN ENGINE LOOP
+-- ==========================================
 
--- Target Spam TP
-RunService.Heartbeat:Connect(function(dt)
-    if toggles.TargetSpamTP and targetSpamName then
-        if tick() - lastTargetTP >= sliderValues.TargetTPDelay then
-            lastTargetTP = tick()
-            local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if not myRoot then return end
-
+RunService.RenderStepped:Connect(function(dt)
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    
+    -- GOD MODE
+    if hum and toggles.GodMode then
+        hum.Health = hum.MaxHealth
+        hum.BreakJointsOnDeath = false
+        hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+    end
+    
+    -- Auto Rejoin
+    if hum and toggles.AutoRejoin and hum.Health <= 0 then
+        TeleportService:Teleport(game.PlaceId, LocalPlayer)
+    end
+    
+    -- Speed / Jump
+    if hum then
+        hum.WalkSpeed = sliderValues.Speed
+        if hum.UseJumpPower then
+            hum.JumpPower = sliderValues.JumpPower
+        else
+            hum.JumpHeight = sliderValues.JumpPower / 3.5
+        end
+        
+        if toggles.AntiStun then
+            hum.PlatformStand = false
+            hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+        end
+    end
+    
+    -- Auto Safe Zone
+    if toggles.AutoSafeZone then
+        local platform = GenerateSafeZone()
+        if root and platform then
+            local pos = root.Position
+            if pos.Y < (safeZoneHeight - 50) then
+                root.CFrame = CFrame.new(platform.Position + Vector3.new(0, 10, 0))
+            end
+        end
+    end
+    
+    -- Noclip
+    if toggles.Noclip and char then
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+    
+    -- Flight
+    if toggles.Fly and root and FlightVelocity and FlightGyro then
+        local camCF = Camera.CFrame
+        local moveDir = Vector3.zero
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camCF.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camCF.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camCF.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camCF.RightVector end
+        
+        if upPressed or UserInputService:IsKeyDown(Enum.KeyCode.E) or UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            moveDir = moveDir + Vector3.new(0, 1, 0)
+        end
+        if downPressed or UserInputService:IsKeyDown(Enum.KeyCode.Q) then
+            moveDir = moveDir - Vector3.new(0, 1, 0)
+        end
+        
+        FlightGyro.CFrame = camCF
+        FlightVelocity.Velocity = moveDir.Magnitude > 0 and (moveDir.Unit * sliderValues.FlySpeed) or Vector3.zero
+    end
+    
+    -- Flying Carpet follow
+    if adminState.FlyingCarpetPart and root then
+        adminState.FlyingCarpetPart.CFrame = root.CFrame * CFrame.new(0, -3, 0)
+    end
+    
+    -- Target Spam TP
+    if toggles.TargetSpamTP and targetSpamName and root then
+        lastTargetTP = lastTargetTP + dt
+        if lastTargetTP >= sliderValues.TargetTPDelay then
+            lastTargetTP = 0
             local foundPlayer = nil
             for _, p in ipairs(Players:GetPlayers()) do
                 if p.Name:lower():sub(1, #targetSpamName) == targetSpamName:lower() or p.DisplayName:lower():sub(1, #targetSpamName) == targetSpamName:lower() then
@@ -1255,32 +1271,90 @@ RunService.Heartbeat:Connect(function(dt)
                     break
                 end
             end
-
             if foundPlayer and foundPlayer.Character and foundPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 local targetRoot = foundPlayer.Character.HumanoidRootPart
-                myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 3)
-
-                if toggles.AutoAlignToTarget then
-                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetRoot.Position)
-                end
+                root.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 3)
             end
         end
     end
-end)
-
--- FOV Lock
-RunService.RenderStepped:Connect(function()
+    
+    -- Lock FOV
     if toggles.LockFOV then
         Camera.FieldOfView = sliderValues.CameraFOV
     end
+    
+    -- ESP updates
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local pChar = player.Character
+            local pRoot = pChar and pChar:FindFirstChild("HumanoidRootPart")
+            local bill = ESPFolder:FindFirstChild(player.Name .. "_ESP_Bill")
+            local trace = ESPFolder:FindFirstChild(player.Name .. "_ESP_Trace")
+            
+            local isTargeted = (EspRegistry[player.Name] == true)
+            local showPlayer = toggles.ESP or isTargeted
+            
+            if pChar and pChar:FindFirstChild("ESPHighlight") then
+                pChar.ESPHighlight.Enabled = showPlayer
+            end
+            
+            if pRoot and bill and trace then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(pRoot.Position)
+                
+                if showPlayer and onScreen then
+                    bill.Enabled = true
+                    local distance = math.floor((root and (root.Position - pRoot.Position).Magnitude) or 0)
+                    local label = bill:FindFirstChild("Tag")
+                    if label then
+                        local healthText = ""
+                        local phum = pChar:FindFirstChildOfClass("Humanoid")
+                        if phum then
+                            healthText = string.format(" | HP: %d", math.floor(phum.Health))
+                        end
+                        if toggles.ShowDistance then
+                            label.Text = string.format("%s\n[%d m]%s", player.DisplayName, distance, healthText)
+                        else
+                            label.Text = string.format("%s%s", player.DisplayName, healthText)
+                        end
+                    end
+                    
+                    local startPos
+                    if tracerOrigin == "Bottom" then
+                        startPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                    elseif tracerOrigin == "Center" then
+                        startPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                    else
+                        startPos = UserInputService:GetMouseLocation()
+                    end
+                    
+                    local targetPos = Vector2.new(screenPos.X, screenPos.Y)
+                    local distanceVec = targetPos - startPos
+                    
+                    trace.Size = UDim2.new(0, distanceVec.Magnitude, 0, 1.5)
+                    trace.Position = UDim2.new(0, startPos.X + (distanceVec.X / 2), 0, startPos.Y + (distanceVec.Y / 2))
+                    trace.Rotation = math.deg(math.atan2(distanceVec.Y, distanceVec.X))
+                    trace.Visible = true
+                else
+                    bill.Enabled = false
+                    trace.Visible = false
+                end
+            else
+                if bill then bill.Enabled = false end
+                if trace then trace.Visible = false end
+            end
+        end
+    end
+    
+    -- Tool ESP refresh
+    refreshToolESP()
 end)
 
--- Camera Distance (Third person)
-RunService.RenderStepped:Connect(function()
-    local character = LocalPlayer.Character
-    local root = character and character:FindFirstChild("HumanoidRootPart")
-    if root then
-        local camPos = root.Position - Camera.CFrame.LookVector * sliderValues.CameraDistance
-        Camera.CFrame = CFrame.new(camPos, root.Position)
+-- Infinite Jump
+UserInputService.JumpRequest:Connect(function()
+    if toggles.InfiniteJump and LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
     end
 end)
